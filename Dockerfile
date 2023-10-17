@@ -1,4 +1,4 @@
-FROM node:18.16.1-slim
+FROM node:20.8.1-bookworm-slim
 
 RUN mkdir /usr/src/goof
 RUN mkdir /tmp/extracted_files
