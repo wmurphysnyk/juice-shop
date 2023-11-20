@@ -1,0 +1,63 @@
+# Node.js
+# Build a general Node.js project with npm.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+trigger:
+  - master
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '10.x'
+    displayName: 'Install Node.js'
+
+  - script: |
+      npm install
+      npm run build
+    displayName: 'npm install and build'
+
+  - script: |
+      sudo npm install -g snyk
+
+      sudo npm install snyk-to-html -g
+    displayName: 'snyk install'
+
+  - script: |
+      sudo snyk auth $(SNYK_TOKEN)
+      sudo snyk monitor --all-projects --remote-repo-url="TB/Test" --target-reference="Test1"
+    displayName: 'snyk monitor'
+
+  - script: |
+      sudo snyk test -d --all-projects --json-file-output=results.json
+      RESULT=$?
+      sudo snyk-to-html -o $(Build.SourcesDirectory)/results-open-source.html < results.json
+      exit $RESULT
+    continueOnError: true
+    displayName: 'snyk test'
+
+  - script: |
+      sudo snyk code test -d --json-file-output=results.json
+      RESULT=$? 
+      sudo snyk-to-html -o $(Build.SourcesDirectory)/results-code-source.html < results.json
+      exit $RESULT
+    continueOnError: true
+    displayName: 'snyk code test'
+
+
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: '$(Build.SourcesDirectory)'
+      Contents: |
+        'results-open-source.html'
+        'results-code-source.html'
+      TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+
+  - publish: $(System.DefaultWorkingDirectory)/results-open-source.html
+    artifact: results-open-source.html
+  - publish: $(System.DefaultWorkingDirectory)/results-code-source.html
+    artifact: results-code-source.html
