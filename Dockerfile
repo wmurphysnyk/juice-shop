@@ -1,4 +1,4 @@
-FROM node:21.5.0-slim
+FROM node:21.7.3-slim
 
 RUN apt-get -y update && apt-get -y install ca-certificates apt-transport-https
 
